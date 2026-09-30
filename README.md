@@ -10,6 +10,9 @@ alarmeringsgroepen, monitorcodes en desgewenst capcodes vind je onder
 **Details**. De kaart volgt het ingestelde Home Assistant-thema en werkt ook
 op een smal dashboard.
 
+![Voorbeeld van P2000 HA Dashboard](p2000.png)
+
+
 > De kaart draait in **Home Assistant**; de P2000-receiver mag op een andere
 > Raspberry Pi of Docker-host draaien. Home Assistant Supervisor is niet nodig
 > voor de receiver.
