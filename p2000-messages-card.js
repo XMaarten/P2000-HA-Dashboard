@@ -2,13 +2,29 @@
 class P2000MessagesCard extends HTMLElement {
   static getStubConfig() {
     return { entity: "", title: "P2000 meldingen", max_messages: 10,
+      hours_to_show: 10,
       show_units: true, show_groups: true, show_monitor_codes: true,
-      show_capcodes: false, hide_when_empty: false, compact: false };
+      show_capcodes: false, hide_when_empty: true, compact: false };
   }
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this._signature = null;
+    this._refreshInterval = null;
+  }
+  connectedCallback() {
+    if (this._refreshInterval === null) {
+      this._refreshInterval = setInterval(() => this._render(), 60000);
+    }
+  }
+  disconnectedCallback() {
+    if (this._refreshInterval !== null) {
+      clearInterval(this._refreshInterval);
+      this._refreshInterval = null;
+    }
+  }
+  _now() {
+    return Date.now();
   }
   setConfig(config) {
     if (!config || typeof config.entity !== "string" || !config.entity.trim()) {
@@ -23,14 +39,46 @@ class P2000MessagesCard extends HTMLElement {
     this._render();
   }
   getCardSize() {
-    return Math.max(2, Math.min(12, this._messages().length * 2));
+    const count = this._messages().length;
+    if (!count && this._config?.hide_when_empty) return 0;
+    return Math.max(2, Math.min(12, count * 2));
+  }
+  _messageTimestamp(message) {
+    // Prefer UTC/offset-aware values from the receiver; 'time' is local time.
+    const candidates = [message.event_time_utc, message.received_at,
+      message.timestamp, message.time];
+    for (const source of candidates) {
+      if (source == null || source === "") continue;
+      let date;
+      if (typeof source === "number") {
+        date = new Date(source < 1e11 ? source * 1000 : source);
+      } else {
+        const value = String(source).trim();
+        // A time without a date cannot be reliably compared to a 10-hour window.
+        if (!/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(value)) continue;
+        date = new Date(value.replace(" ", "T"));
+      }
+      if (!Number.isNaN(date.getTime())) return date.getTime();
+    }
+    return null;
   }
   _messages() {
     const state = this._hass && this._config && this._hass.states[this._config.entity];
     const messages = state && state.attributes.messages;
     if (!Array.isArray(messages)) return [];
+    const now = this._now();
+    const requestedHours = Number(this._config.hours_to_show);
+    const hours = Number.isFinite(requestedHours) && requestedHours > 0 ?
+      Math.min(requestedHours, 8760) : 10;
+    const cutoff = now - hours * 60 * 60 * 1000;
     const max = Math.max(1, Math.min(100, Number(this._config.max_messages) || 10));
-    return messages.slice(0, max).filter(m => m && typeof m === "object");
+    return messages.filter(message => {
+      if (!message || typeof message !== "object") return false;
+      const timestamp = this._messageTimestamp(message);
+      return timestamp !== null && timestamp >= cutoff &&
+        timestamp <= now + 5 * 60 * 1000;
+    }).sort((a, b) => this._messageTimestamp(b) - this._messageTimestamp(a))
+      .slice(0, max);
   }
   _escape(value) {
     return String(value == null ? "" : value)
@@ -141,9 +189,11 @@ class P2000MessagesCard extends HTMLElement {
     if (signature === this._signature) return;
     this._signature = signature;
     if (this._config.hide_when_empty && !messages.length) {
+      this.style.display = "none";
       this.shadowRoot.innerHTML = "";
       return;
     }
+    this.style.display = "";
     this.shadowRoot.innerHTML = '<style>' + P2000MessagesCard.styles +
       '</style><ha-card class="' + (this._config.compact ? "compact" : "") + '">' +
       '<div class="header">' + this._escape(this._config.title) + '</div>' +
@@ -213,6 +263,6 @@ if (!window.customCards.some(card => card.type === "p2000-messages-card")) {
     description: "Compacte kaart voor recente P2000-meldingen", preview: true
   });
 }
-console.info("%c P2000 Messages Card %c v1.0.0 ",
+console.info("%c P2000 Messages Card %c v1.1.0 ",
   "color:white;background:#1976d2;font-weight:bold",
   "color:#1976d2;background:white;font-weight:bold");
