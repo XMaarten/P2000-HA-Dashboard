@@ -1,0 +1,39 @@
+name: Publish release
+
+on:
+  push:
+    paths:
+      - VERSION
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$(tr -d '[:space:]' < VERSION)"
+          if [ -z "$TAG" ]; then
+            echo "VERSION is empty"
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --notes "P2000 HA Dashboard $TAG
+
+          - Toon alleen meldingen uit de laatste 10 uur.
+          - Verberg de kaart automatisch als er geen recente meldingen zijn.
+          - Vernieuw de kaart iedere minuut.
+          - Screenshot toegevoegd aan README."
