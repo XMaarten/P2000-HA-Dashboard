@@ -1,0 +1,6 @@
+{
+  "name": "P2000 HA Dashboard",
+  "content_in_root": true,
+  "filename": "p2000-messages-card.js",
+  "render_readme": true
+}
