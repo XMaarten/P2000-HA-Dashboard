@@ -57,6 +57,8 @@ type: custom:p2000-messages-card
 entity: sensor.p2000_rtl_sdr_p2000_alle_meldingen_recente_meldingen
 title: P2000 meldingen
 max_messages: 10
+hours_to_show: 10
+hide_when_empty: true
 show_units: true
 show_groups: false
 show_monitor_codes: false
@@ -70,6 +72,7 @@ type: custom:p2000-messages-card
 entity: sensor.p2000_rtl_sdr_p2000_grip_recente_meldingen
 title: Laatste GRIP-meldingen
 max_messages: 10
+hours_to_show: 10
 show_units: true
 show_groups: true
 show_monitor_codes: true
@@ -87,6 +90,7 @@ type: custom:p2000-messages-card
 entity: sensor.p2000_rtl_sdr_p2000_alkmaar_recente_meldingen
 title: Meldingen Alkmaar
 max_messages: 10
+hours_to_show: 10
 show_units: true
 show_groups: true
 show_monitor_codes: false
@@ -101,12 +105,18 @@ compact: true
 | `entity` | verplicht | Sensor met het `messages`-attribuut |
 | `title` | P2000 meldingen | Titel van de kaart |
 | `max_messages` | 10 | Maximum aantal getoonde berichten (1–100) |
+| `hours_to_show` | 10 | Toon alleen meldingen uit de afgelopen 10 uur |
 | `show_units` | true | Toon maximaal drie eenheden direct en overige onder Details |
 | `show_groups` | true | Toon alarmeringsgroepen onder Details |
 | `show_monitor_codes` | true | Toon monitorcodes onder Details |
 | `show_capcodes` | false | Toon capcodes onder Details |
-| `hide_when_empty` | false | Toon geen kaart wanneer er geen meldingen zijn |
+| `hide_when_empty` | true | Verberg de kaart als er geen meldingen binnen de ingestelde periode zijn |
 | `compact` | false | Kleinere tekst en minder tussenruimte |
+
+De kaart filtert eerst op leeftijd, toont daarna maximaal `max_messages` meldingen
+en controleert elke minuut opnieuw. Zijn alle meldingen ouder dan 10 uur,
+dan verdwijnt de kaart vanzelf, ook zonder nieuwe P2000-meldingen.
+Berichten zonder bruikbare datum worden niet getoond.
 
 De kaart gebruikt `services` (of `service`/`discipline` als fallback)
 voor de hulpdienstbadges. Hij leidt geen extra hulpdiensten af uit woorden
